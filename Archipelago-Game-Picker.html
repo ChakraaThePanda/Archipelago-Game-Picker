@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Archipelago Seed Picker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* =============================================
+     DESIGN TOKENS
+     ============================================= */
+  :root {
+    --bg:       #0e1117;
+    --surface:  #161b27;
+    --surface2: #1e2538;
+    --border:   #2a3050;
+    --text:     #dce3f5;
+    --muted:    #5a6380;
+    --accent:   #4f6ef7;
+    --accent2:  #c96af0;
+
+    --s: #ffd700;
+    --a: #ff8c42;
+    --b: #4ecdc4;
+    --c: #74b3f5;
+    --d: #8e8e9e;
+
+    --radius: 12px;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+    background-image:
+      radial-gradient(ellipse at 15% 20%, rgba(79,110,247,.12) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 75%, rgba(201,106,240,.08) 0%, transparent 50%);
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2.8rem, 6vw, 5rem);
+    letter-spacing: .04em;
+    text-align: center;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-size: .9rem;
+    margin-bottom: 40px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+
+  /* ---- COUNT ROW ---- */
+  .count-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+
+  .count-row label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .count-input {
+    width: 80px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    letter-spacing: .05em;
+    text-align: center;
+    padding: 6px 8px 2px;
+    appearance: textfield;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .count-input:focus { border-color: var(--accent); }
+  .count-input::-webkit-outer-spin-button,
+  .count-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  /* ---- PANELS ---- */
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    max-width: 900px;
+    margin: 0 auto 32px;
+  }
+
+  @media (max-width: 640px) {
+    .panels { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 14px 18px;
+    border-bottom: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .panel-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .panel-guaranteed .panel-icon { background: rgba(79,110,247,.2); }
+  .panel-possible    .panel-icon { background: rgba(201,106,240,.2); }
+
+  .panel-title {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    letter-spacing: .06em;
+  }
+
+  .panel-count {
+    margin-left: auto;
+    font-size: .75rem;
+    color: var(--muted);
+    background: var(--surface2);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-weight: 600;
+  }
+
+  .panel-body {
+    padding: 12px;
+    max-height: 420px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* ---- GAME ITEM ---- */
+  .game-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s;
+    user-select: none;
+  }
+  .game-item:hover:not(.disabled) { background: var(--surface2); }
+  .game-item.selected { background: rgba(79,110,247,.12); }
+  .panel-possible .game-item.selected { background: rgba(201,106,240,.10); }
+
+  .game-item.disabled {
+    opacity: .32;
+    cursor: not-allowed;
+    filter: grayscale(.6);
+  }
+
+  .game-check {
+    width: 18px; height: 18px;
+    border-radius: 5px;
+    border: 1.5px solid var(--border);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s, border-color .15s;
+  }
+  .game-item.selected .game-check {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .panel-possible .game-item.selected .game-check {
+    background: var(--accent2);
+    border-color: var(--accent2);
+  }
+  .game-check::after {
+    content: '';
+    width: 5px; height: 9px;
+    border: 2px solid #fff;
+    border-top: none; border-left: none;
+    transform: rotate(45deg) translateY(-1px);
+    display: none;
+  }
+  .game-item.selected .game-check::after { display: block; }
+
+  .rank-badge {
+    font-family: var(--font-display);
+    font-size: .85rem;
+    letter-spacing: .08em;
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .rank-S { background: rgba(255,215,0,.15);  color: var(--s); }
+  .rank-A { background: rgba(255,140,66,.15); color: var(--a); }
+  .rank-B { background: rgba(78,205,196,.15); color: var(--b); }
+  .rank-C { background: rgba(116,179,245,.15); color: var(--c); }
+  .rank-D { background: rgba(142,142,158,.15); color: var(--d); }
+
+  .game-name {
+    font-size: .9rem;
+    font-weight: 500;
+    flex: 1;
+  }
+
+  /* ---- RANDOMIZE BUTTON ---- */
+  .btn-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 40px;
+  }
+
+  .btn-randomize {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    letter-spacing: .12em;
+    padding: 14px 48px 10px;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    box-shadow: 0 4px 24px rgba(79,110,247,.35);
+    transition: opacity .2s, transform .15s, box-shadow .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-randomize::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,.15), transparent);
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .btn-randomize:hover:not(:disabled)::after { opacity: 1; }
+  .btn-randomize:active:not(:disabled) { transform: scale(.97); }
+  .btn-randomize:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* ---- RESULTS ---- */
+  .results {
+    max-width: 560px;
+    margin: 0 auto;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity .4s, transform .4s;
+    pointer-events: none;
+  }
+  .results.visible {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .results-title {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    letter-spacing: .1em;
+    text-align: center;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+
+  .result-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .result-item {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: slideIn .35s ease both;
+  }
+  .result-item.guaranteed { border-left: 3px solid var(--accent); }
+  .result-item.rolled     { border-left: 3px solid var(--accent2); }
+
+  .result-number {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    color: var(--muted);
+    min-width: 28px;
+  }
+
+  .result-name {
+    flex: 1;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .result-tag {
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .tag-guaranteed { background: rgba(79,110,247,.2);  color: var(--accent); }
+  .tag-rolled     { background: rgba(201,106,240,.2); color: var(--accent2); }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-16px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* ---- STATUS LINE ---- */
+  .status-line {
+    text-align: center;
+    font-size: .82rem;
+    color: var(--muted);
+    margin-bottom: 16px;
+    min-height: 1.2em;
+  }
+  .status-line span { color: var(--text); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h1>🌐 Archipelago</h1>
+<p class="subtitle">Build your next randomizer seed</p>
+
+<div class="count-row">
+  <label for="gameCount">How many games in the seed?</label>
+  <input id="gameCount" class="count-input" type="number" min="1" value="3" />
+</div>
+
+<div class="panels">
+  <div class="panel panel-guaranteed">
+    <div class="panel-header">
+      <div class="panel-icon">✅</div>
+      <div class="panel-title">Guaranteed</div>
+      <div class="panel-count" id="countGuaranteed">0 selected</div>
+    </div>
+    <div class="panel-body" id="listGuaranteed"></div>
+  </div>
+
+  <div class="panel panel-possible">
+    <div class="panel-header">
+      <div class="panel-icon">🎰</div>
+      <div class="panel-title">Possible</div>
+      <div class="panel-count" id="countPossible">0 selected</div>
+    </div>
+    <div class="panel-body" id="listPossible"></div>
+  </div>
+</div>
+
+<p class="status-line" id="statusLine"></p>
+<div class="btn-wrap">
+  <button class="btn-randomize" id="btnRandomize" disabled>Randomize!</button>
+</div>
+
+<div class="results" id="results">
+  <div class="results-title">🌐 Next Seed Lineup</div>
+  <div class="result-list" id="resultList"></div>
+</div>
+
+<script>
+/* =====================================================
+   ★  GAME LIST — edit this to add your games!
+   ★  Ranks: S | A | B | C | D
+   ===================================================== */
+const GAMES = [
+  { name: "A Hat in Time",                                            rank: "" },
+  { name: "A Short Hike",                                             rank: "" },
+  { name: "APQuest",                                                  rank: "" },
+  { name: "Archipela-Go!",                                            rank: "" },
+  { name: "Bloons Tower Defense 6",                                   rank: "" },
+  { name: "Celeste (Open World)",                                     rank: "" },
+  { name: "Celeste 64",                                               rank: "" },
+  { name: "Clique",                                                   rank: "" },
+  { name: "Dark Souls III",                                           rank: "" },
+  { name: "Death's Door",                                             rank: "" },
+  { name: "DLC Quest",                                                rank: "" },
+  { name: "DOOM 1993",                                                rank: "" },
+  { name: "DOOM II",                                                  rank: "" },
+  { name: "Fellowship",                                               rank: "" },
+  { name: "Hollow Knight",                                            rank: "" },
+  { name: "Jigsaw",                                                   rank: "" },
+  { name: "JS Paint",                                                 rank: "" },
+  { name: "Keep Talking and Nobody Explodes",                         rank: "" },
+  { name: "Lil Gator Game",                                           rank: "" },
+  { name: "Mario Kart 64",                                            rank: "" },
+  { name: "Metroid Prime",                                            rank: "" },
+  { name: "Minecraft",                                                rank: "" },
+  { name: "MTG",                                                      rank: "" },
+  { name: "Muse Dash",                                                rank: "" },
+  { name: "Northgard",                                                rank: "" },
+  { name: "OpenRCT2",                                                 rank: "" },
+  { name: "Ori and the Blind Forest",                                 rank: "" },
+  { name: "Ori and the Will of the Wisps",                            rank: "" },
+  { name: "Outer Wilds",                                              rank: "" },
+  { name: "Overcooked! 2",                                            rank: "" },
+  { name: "Pokemon FireRed / LeafGreen",                              rank: "" },
+  { name: "Pokemon Emerald",                                          rank: "" },
+  { name: "Powerwash Simulator",                                      rank: "" },
+  { name: "Pseudoregalia",                                            rank: "" },
+  { name: "Rabbit and Steel",                                         rank: "" },
+  { name: "Risk of Rain 2",                                           rank: "" },
+  { name: "Sid Meier's Civilization VI",                              rank: "" },
+  { name: "Slay the Spire",                                           rank: "" },
+  { name: "Stardew Valley",                                           rank: "" },
+  { name: "Super Mario Sunshine",                                     rank: "" },
+  { name: "Super Mario 64",                                           rank: "" },
+  { name: "Super Smash Bros Melee",                                   rank: "" },
+  { name: "TCG Card Shop Simulator",                                  rank: "" },
+  { name: "The Legend of Zelda: A Link to the Past",                  rank: "" },
+  { name: "The Legend of Zelda: Ocarina of Time",                     rank: "" },
+  { name: "The Legend of Zelda: Ocarina of Time (Ship of Harkinian)", rank: "" },
+  { name: "The Legend of Zelda: Majora's Mask",                       rank: "" },
+  { name: "The Legend of Zelda: The Wind Waker",                      rank: "" },
+  { name: "The Legend of Zelda: Twilight Princess",                   rank: "" },
+  { name: "The Legend of Zelda: A Link Between Worlds",               rank: "" },
+  { name: "Timespinner",                                              rank: "" },
+  { name: "The Vault",                                                rank: "" },
+  { name: "TUNIC",                                                    rank: "" },
+  { name: "Wargroove",                                                rank: "" },
+  { name: "Watch A Show",                                             rank: "" },
+  { name: "WEBFISHING",                                               rank: "" },
+  { name: "World of Warcraft: Dungeons",                              rank: "" },
+  { name: "World of Warcraft: Leveling",                              rank: "" },
+  { name: "Yacht Dice",                                               rank: "" },
+  { name: "Yooka-Laylee",                                             rank: "" },
+];
+
+/* =====================================================
+   WEIGHTS — feel free to adjust
+   ===================================================== */
+const RANK_WEIGHTS = { S: 5, A: 4, B: 3, C: 2, D: 1 };
+
+/* =====================================================
+   APP STATE
+   ===================================================== */
+const selectedGuaranteed = new Set();
+const selectedPossible   = new Set();
+
+const sortedGames = [...GAMES].sort((a, b) => a.name.localeCompare(b.name));
+
+/* =====================================================
+   RENDER HELPERS
+   ===================================================== */
+function rankLabel(game) {
+  return `${game.name} (${game.rank})`;
+}
+
+function buildItem(game, panel, onClick) {
+  const div = document.createElement('div');
+  div.className = 'game-item';
+  div.dataset.name = game.name;
+  div.innerHTML = `
+    <div class="game-check"></div>
+    <div class="rank-badge rank-${game.rank}">${game.rank}</div>
+    <div class="game-name">${rankLabel(game)}</div>
+  `;
+  div.addEventListener('click', () => onClick(game, div));
+  return div;
+}
+
+function renderLists() {
+  const gList = document.getElementById('listGuaranteed');
+  const pList = document.getElementById('listPossible');
+  gList.innerHTML = '';
+  pList.innerHTML = '';
+
+  for (const game of sortedGames) {
+    // Guaranteed panel
+    const gItem = buildItem(game, 'guaranteed', (g, el) => {
+      if (el.classList.contains('disabled')) return;
+      if (selectedGuaranteed.has(g.name)) {
+        selectedGuaranteed.delete(g.name);
+      } else {
+        selectedGuaranteed.add(g.name);
+        selectedPossible.delete(g.name); // uncheck from possible if it was selected there
+      }
+      updateUI();
+    });
+    gList.appendChild(gItem);
+
+    // Possible panel
+    const pItem = buildItem(game, 'possible', (g, el) => {
+      if (el.classList.contains('disabled')) return;
+      if (selectedPossible.has(g.name)) selectedPossible.delete(g.name);
+      else selectedPossible.add(g.name);
+      updateUI();
+    });
+    pList.appendChild(pItem);
+  }
+}
+
+function updateUI() {
+  const want = parseInt(document.getElementById('gameCount').value) || 0;
+
+  // Sync item states
+  document.querySelectorAll('#listGuaranteed .game-item').forEach(el => {
+    const name = el.dataset.name;
+    el.classList.toggle('selected', selectedGuaranteed.has(name));
+    el.classList.remove('disabled');
+  });
+
+  document.querySelectorAll('#listPossible .game-item').forEach(el => {
+    const name = el.dataset.name;
+    const isGuaranteed = selectedGuaranteed.has(name);
+    el.classList.toggle('selected', selectedPossible.has(name));
+    el.classList.toggle('disabled', isGuaranteed);
+  });
+
+  // Counts
+  document.getElementById('countGuaranteed').textContent =
+    selectedGuaranteed.size + ' selected';
+  document.getElementById('countPossible').textContent =
+    selectedPossible.size + ' selected';
+
+  // Button state
+  const gCount = selectedGuaranteed.size;
+  const pCount = selectedPossible.size;
+  const totalPool = gCount + pCount;
+  const neededFromPool = want - gCount; // how many we'll pick from "possible"
+  const canRandomize = want > 0 && neededFromPool >= 0 && pCount >= neededFromPool && gCount <= want;
+
+  document.getElementById('btnRandomize').disabled = !canRandomize;
+
+  // Status hint
+  const line = document.getElementById('statusLine');
+  if (want <= 0) {
+    line.innerHTML = 'Set how many games you want above.';
+  } else if (gCount > want) {
+    line.innerHTML = `You have <span>${gCount}</span> guaranteed games but only want <span>${want}</span>.`;
+  } else if (!canRandomize) {
+    const need = Math.max(0, neededFromPool - pCount);
+    line.innerHTML = `Select at least <span>${need}</span> more possible game${need !== 1 ? 's' : ''} to roll from.`;
+  } else {
+    line.innerHTML = `<span>${gCount}</span> guaranteed + rolling <span>${neededFromPool}</span> from <span>${pCount}</span> possible.`;
+  }
+}
+
+/* =====================================================
+   WEIGHTED RANDOM
+   ===================================================== */
+function weightedSample(pool, n) {
+  const chosen = [];
+  const available = pool.map(name => {
+    const game = GAMES.find(g => g.name === name);
+    return { name, weight: RANK_WEIGHTS[game.rank] ?? 1 };
+  });
+
+  for (let i = 0; i < n; i++) {
+    const total = available.reduce((s, g) => s + g.weight, 0);
+    let r = Math.random() * total;
+    let idx = 0;
+    for (; idx < available.length; idx++) {
+      r -= available[idx].weight;
+      if (r <= 0) break;
+    }
+    chosen.push(available[idx].name);
+    available.splice(idx, 1);
+  }
+  return chosen;
+}
+
+/* =====================================================
+   RANDOMIZE
+   ===================================================== */
+document.getElementById('btnRandomize').addEventListener('click', () => {
+  const want = parseInt(document.getElementById('gameCount').value) || 0;
+  const guaranteed = [...selectedGuaranteed];
+  const needed = want - guaranteed.length;
+  const rolled = weightedSample([...selectedPossible], needed);
+
+  const allResults = [
+    ...guaranteed.map(n => ({ name: n, type: 'guaranteed' })),
+    ...rolled.map(n => ({ name: n, type: 'rolled' })),
+  ];
+
+  const resultList = document.getElementById('resultList');
+  resultList.innerHTML = '';
+
+  allResults.forEach((item, i) => {
+    const game = GAMES.find(g => g.name === item.name);
+    const el = document.createElement('div');
+    el.className = `result-item ${item.type}`;
+    el.style.animationDelay = `${i * 0.07}s`;
+    el.innerHTML = `
+      <div class="result-number">${i + 1}.</div>
+      <div class="rank-badge rank-${game.rank}">${game.rank}</div>
+      <div class="result-name">${item.name}</div>
+      <div class="result-tag tag-${item.type}">${item.type === 'guaranteed' ? '✅ Lock' : '🎲 Rolled'}</div>
+    `;
+    resultList.appendChild(el);
+  });
+
+  const resultsEl = document.getElementById('results');
+  resultsEl.classList.add('visible');
+  resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+/* =====================================================
+   INIT
+   ===================================================== */
+document.getElementById('gameCount').addEventListener('input', updateUI);
+renderLists();
+updateUI();
+</script>
+</body>
+</html>
