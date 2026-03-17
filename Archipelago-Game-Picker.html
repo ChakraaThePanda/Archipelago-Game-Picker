@@ -142,7 +142,6 @@
   }
 
   .panel-count {
-    margin-left: auto;
     font-size: .75rem;
     color: var(--muted);
     background: var(--surface2);
@@ -150,6 +149,24 @@
     padding: 3px 10px;
     font-weight: 600;
   }
+
+  .btn-select-all {
+    margin-left: auto;
+    font-family: var(--font-body);
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1.5px solid rgba(201,106,240,.4);
+    background: rgba(201,106,240,.1);
+    color: var(--accent2);
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+    white-space: nowrap;
+  }
+  .btn-select-all:hover { background: rgba(201,106,240,.22); border-color: var(--accent2); }
+  .btn-select-all.all-selected { background: rgba(201,106,240,.2); color: var(--muted); border-color: var(--border); }
 
   .panel-body {
     padding: 12px;
@@ -279,14 +296,37 @@
     pointer-events: auto;
   }
 
+  .results-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
   .results-title {
     font-family: var(--font-display);
     font-size: 1.8rem;
     letter-spacing: .1em;
-    text-align: center;
-    margin-bottom: 20px;
     color: var(--text);
   }
+
+  .btn-export {
+    font-family: var(--font-body);
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+    white-space: nowrap;
+  }
+  .btn-export:hover { border-color: var(--accent); color: var(--text); background: rgba(79,110,247,.1); }
+  .btn-export.copied { border-color: #4ecdc4; color: #4ecdc4; background: rgba(78,205,196,.1); }
 
   .result-list {
     display: flex;
@@ -371,6 +411,7 @@
     <div class="panel-header">
       <div class="panel-icon">🎰</div>
       <div class="panel-title">Possible</div>
+      <button class="btn-select-all" id="btnSelectAll">Select All</button>
       <div class="panel-count" id="countPossible">0 selected</div>
     </div>
     <div class="panel-body" id="listPossible"></div>
@@ -383,7 +424,10 @@
 </div>
 
 <div class="results" id="results">
-  <div class="results-title">🌐 Next Seed Lineup</div>
+  <div class="results-header">
+    <div class="results-title">🌐 Next Seed Lineup</div>
+    <button class="btn-export" id="btnExport">📋 Copy</button>
+  </div>
   <div class="result-list" id="resultList"></div>
 </div>
 
@@ -393,66 +437,57 @@
    ★  Ranks: S | A | B | C | D
    ===================================================== */
 const GAMES = [
-  { name: "A Hat in Time",                                            rank: "" },
-  { name: "A Short Hike",                                             rank: "" },
-  { name: "APQuest",                                                  rank: "" },
-  { name: "Archipela-Go!",                                            rank: "" },
-  { name: "Bloons Tower Defense 6",                                   rank: "" },
-  { name: "Celeste (Open World)",                                     rank: "" },
-  { name: "Celeste 64",                                               rank: "" },
-  { name: "Clique",                                                   rank: "" },
-  { name: "Dark Souls III",                                           rank: "" },
-  { name: "Death's Door",                                             rank: "" },
-  { name: "DLC Quest",                                                rank: "" },
-  { name: "DOOM 1993",                                                rank: "" },
-  { name: "DOOM II",                                                  rank: "" },
-  { name: "Fellowship",                                               rank: "" },
-  { name: "Hollow Knight",                                            rank: "" },
-  { name: "Jigsaw",                                                   rank: "" },
-  { name: "JS Paint",                                                 rank: "" },
-  { name: "Keep Talking and Nobody Explodes",                         rank: "" },
-  { name: "Lil Gator Game",                                           rank: "" },
-  { name: "Mario Kart 64",                                            rank: "" },
-  { name: "Metroid Prime",                                            rank: "" },
-  { name: "Minecraft",                                                rank: "" },
-  { name: "MTG",                                                      rank: "" },
-  { name: "Muse Dash",                                                rank: "" },
-  { name: "Northgard",                                                rank: "" },
-  { name: "OpenRCT2",                                                 rank: "" },
-  { name: "Ori and the Blind Forest",                                 rank: "" },
-  { name: "Ori and the Will of the Wisps",                            rank: "" },
-  { name: "Outer Wilds",                                              rank: "" },
-  { name: "Overcooked! 2",                                            rank: "" },
-  { name: "Pokemon FireRed / LeafGreen",                              rank: "" },
-  { name: "Pokemon Emerald",                                          rank: "" },
-  { name: "Powerwash Simulator",                                      rank: "" },
-  { name: "Pseudoregalia",                                            rank: "" },
-  { name: "Rabbit and Steel",                                         rank: "" },
-  { name: "Risk of Rain 2",                                           rank: "" },
-  { name: "Sid Meier's Civilization VI",                              rank: "" },
-  { name: "Slay the Spire",                                           rank: "" },
-  { name: "Stardew Valley",                                           rank: "" },
-  { name: "Super Mario Sunshine",                                     rank: "" },
-  { name: "Super Mario 64",                                           rank: "" },
-  { name: "Super Smash Bros Melee",                                   rank: "" },
-  { name: "TCG Card Shop Simulator",                                  rank: "" },
-  { name: "The Legend of Zelda: A Link to the Past",                  rank: "" },
-  { name: "The Legend of Zelda: Ocarina of Time",                     rank: "" },
-  { name: "The Legend of Zelda: Ocarina of Time (Ship of Harkinian)", rank: "" },
-  { name: "The Legend of Zelda: Majora's Mask",                       rank: "" },
-  { name: "The Legend of Zelda: The Wind Waker",                      rank: "" },
-  { name: "The Legend of Zelda: Twilight Princess",                   rank: "" },
-  { name: "The Legend of Zelda: A Link Between Worlds",               rank: "" },
-  { name: "Timespinner",                                              rank: "" },
-  { name: "The Vault",                                                rank: "" },
-  { name: "TUNIC",                                                    rank: "" },
-  { name: "Wargroove",                                                rank: "" },
-  { name: "Watch A Show",                                             rank: "" },
-  { name: "WEBFISHING",                                               rank: "" },
-  { name: "World of Warcraft: Dungeons",                              rank: "" },
-  { name: "World of Warcraft: Leveling",                              rank: "" },
-  { name: "Yacht Dice",                                               rank: "" },
-  { name: "Yooka-Laylee",                                             rank: "" },
+  { name: "A Hat in Time",                                            rank: "A" },
+  { name: "A Short Hike",                                             rank: "S" },
+  { name: "APQuest",                                                  rank: "B" },
+  { name: "Archipela-Go!",                                            rank: "C" },
+  { name: "Celeste (Open World)",                                     rank: "D" },
+  { name: "Celeste 64",                                               rank: "B" },
+  { name: "Clique",                                                   rank: "B" },
+  { name: "Dark Souls III",                                           rank: "D" },
+  { name: "Death's Door",                                             rank: "A" },
+  { name: "DLC Quest",                                                rank: "C" },
+  { name: "DOOM 1993",                                                rank: "A" },
+  { name: "DOOM II",                                                  rank: "B" },
+  { name: "Fellowship",                                               rank: "B" },
+  { name: "Hollow Knight",                                            rank: "D" },
+  { name: "Jigsaw",                                                   rank: "S" },
+  { name: "JS Paint",                                                 rank: "B" },
+  { name: "Keep Talking and Nobody Explodes",                         rank: "B" },
+  { name: "Lil Gator Game",                                           rank: "S" },
+  { name: "Metroid Prime",                                            rank: "S" },
+  { name: "Minecraft",                                                rank: "C" },
+  { name: "MTG",                                                      rank: "C" },
+  { name: "Muse Dash",                                                rank: "S" },
+  { name: "Northgard",                                                rank: "A" },
+  { name: "OpenRCT2",                                                 rank: "C" },
+  { name: "Ori and the Blind Forest",                                 rank: "B" },
+  { name: "Ori and the Will of the Wisps",                            rank: "S" },
+  { name: "Overcooked! 2",                                            rank: "C" },
+  { name: "Pokemon FireRed / LeafGreen",                              rank: "C" },
+  { name: "Pokemon Emerald",                                          rank: "C" },
+  { name: "Powerwash Simulator",                                      rank: "B" },
+  { name: "Pseudoregalia",                                            rank: "D" },
+  { name: "Rabbit and Steel",                                         rank: "C" },
+  { name: "Risk of Rain 2",                                           rank: "A" },
+  { name: "Sid Meier's Civilization VI",                              rank: "D" },
+  { name: "Stardew Valley",                                           rank: "A" },
+  { name: "Super Mario Sunshine",                                     rank: "B" },
+  { name: "Super Mario 64",                                           rank: "B" },
+  { name: "TCG Card Shop Simulator",                                  rank: "A" },
+  { name: "The Legend of Zelda: Ocarina of Time (Ship of Harkinian)", rank: "S" },
+  { name: "The Legend of Zelda: Majora's Mask",                       rank: "B" },
+  { name: "The Legend of Zelda: The Wind Waker",                      rank: "B" },
+  { name: "The Legend of Zelda: Twilight Princess",                   rank: "A" },
+  { name: "Timespinner",                                              rank: "A" },
+  { name: "The Vault",                                                rank: "B" },
+  { name: "TUNIC",                                                    rank: "S" },
+  { name: "Wargroove",                                                rank: "B" },
+  { name: "Watch A Show",                                             rank: "C" },
+  { name: "WEBFISHING",                                               rank: "B" },
+  { name: "World of Warcraft: Dungeons",                              rank: "C" },
+  { name: "World of Warcraft: Leveling",                              rank: "B" },
+  { name: "Yacht Dice",                                               rank: "A" },
 ];
 
 /* =====================================================
@@ -536,6 +571,13 @@ function updateUI() {
     el.classList.toggle('disabled', isGuaranteed);
   });
 
+  // Select All button label
+  const availableForPossible = sortedGames.filter(g => !selectedGuaranteed.has(g.name));
+  const allPossibleSelected = availableForPossible.length > 0 && availableForPossible.every(g => selectedPossible.has(g.name));
+  const btnSelectAll = document.getElementById('btnSelectAll');
+  btnSelectAll.textContent = allPossibleSelected ? 'Deselect All' : 'Select All';
+  btnSelectAll.classList.toggle('all-selected', allPossibleSelected);
+
   // Counts
   document.getElementById('countGuaranteed').textContent =
     selectedGuaranteed.size + ' selected';
@@ -566,8 +608,23 @@ function updateUI() {
 }
 
 /* =====================================================
-   WEIGHTED RANDOM
+   SELECT ALL (Possible)
    ===================================================== */
+document.getElementById('btnSelectAll').addEventListener('click', () => {
+  const availableGames = sortedGames.filter(g => !selectedGuaranteed.has(g.name));
+  const allSelected = availableGames.every(g => selectedPossible.has(g.name));
+
+  if (allSelected) {
+    // Deselect all possible
+    availableGames.forEach(g => selectedPossible.delete(g.name));
+  } else {
+    // Select all non-guaranteed games
+    availableGames.forEach(g => selectedPossible.add(g.name));
+  }
+  updateUI();
+});
+
+
 function weightedSample(pool, n) {
   const chosen = [];
   const available = pool.map(name => {
@@ -623,6 +680,31 @@ document.getElementById('btnRandomize').addEventListener('click', () => {
   const resultsEl = document.getElementById('results');
   resultsEl.classList.add('visible');
   resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Store for export
+  resultsEl.dataset.export = allResults
+    .map((item, i) => {
+      const game = GAMES.find(g => g.name === item.name);
+      return `${i + 1}. ${item.name} (${game.rank})`;
+    })
+    .join('\n');
+});
+
+/* =====================================================
+   EXPORT
+   ===================================================== */
+document.getElementById('btnExport').addEventListener('click', () => {
+  const text = document.getElementById('results').dataset.export || '';
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('btnExport');
+    btn.textContent = '✔ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '📋 Copy';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
 });
 
 /* =====================================================
